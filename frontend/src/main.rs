@@ -1,6 +1,6 @@
 use yew::prelude::*;
 use reqwasm::http::Request;
-use serde::{Serialize, Deserialize};
+use shared::datatypes::{HealthResponse};
 
 enum Msg {
     AddOne,
@@ -52,10 +52,6 @@ enum Msg2 {
 struct APITester {
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct TestMessage {
-}
-
 impl Component for APITester {
     type Message = Msg2;
     type Properties = ();
@@ -75,7 +71,7 @@ impl Component for APITester {
                         .send()
                         .await
                         .unwrap()
-                        .json::<TestMessage>()
+                        .json::<HealthResponse>()
                         .await
                         .unwrap();
                     log::info!("resp: {:?}", resp);

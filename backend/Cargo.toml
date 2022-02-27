@@ -8,4 +8,4 @@ actix-web = "4"
 actix-files = "0.6.0"
 simple_logger = "2.1.0"
 log = "0.4.14"
-serde = { version = "1.0", features = ["derive"] }
+shared = { path = "../shared" }

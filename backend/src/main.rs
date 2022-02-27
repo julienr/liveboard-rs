@@ -1,12 +1,7 @@
 use actix_web::{get, web, App, HttpServer, Result, Responder, middleware::Logger};
-use serde::Serialize;
 use actix_files as fs;
+use shared::datatypes::{HealthResponse};
 
-
-#[derive(Serialize)]
-struct HealthResponse {
-    name: String,
-}
 
 #[get("/health")]
 async fn health() -> Result<impl Responder> {
