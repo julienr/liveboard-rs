@@ -1,5 +1,6 @@
 use yew::prelude::*;
 use reqwasm::http::Request;
+use serde::{Serialize, Deserialize};
 
 enum Msg {
     AddOne,
@@ -51,6 +52,10 @@ enum Msg2 {
 struct APITester {
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct TestMessage {
+}
+
 impl Component for APITester {
     type Message = Msg2;
     type Properties = ();
@@ -66,11 +71,11 @@ impl Component for APITester {
                 log::info!("APITester {:?}", msg);
                 // https://yew.rs/docs/tutorial
                 wasm_bindgen_futures::spawn_local(async move {
-                    let resp = Request::get("http://localhost:8000/test")
+                    let resp = Request::get("/api/health")
                         .send()
                         .await
                         .unwrap()
-                        .json()
+                        .json::<TestMessage>()
                         .await
                         .unwrap();
                     log::info!("resp: {:?}", resp);

@@ -1,11 +1,34 @@
-#[macro_use] extern crate rocket;
+use actix_web::{get, web, App, HttpServer, Result, Responder, middleware::Logger};
+use serde::Serialize;
+use actix_files as fs;
 
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+
+#[derive(Serialize)]
+struct HealthResponse {
+    name: String,
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+#[get("/health")]
+async fn health() -> Result<impl Responder> {
+    //HttpResponse::Ok().body("Hello")
+    let obj = HealthResponse{
+        name: String::from("Test")
+    };
+    Ok(web::Json(obj))
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    simple_logger::init_with_level(log::Level::Debug).unwrap();
+
+    HttpServer::new(|| {
+        App::new()
+            .service(web::scope("/api")
+                .service(health))
+            .service(fs::Files::new("/", "../frontend/dist").index_file("index.html"))
+            .wrap(Logger::default())
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
 }
