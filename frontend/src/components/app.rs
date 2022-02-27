@@ -1,5 +1,5 @@
-use yew::prelude::*;
 use super::api_health_checker::APIHealthChecker;
+use yew::prelude::*;
 
 pub enum Msg {}
 

@@ -1,16 +1,6 @@
-use actix_web::{get, web, App, HttpServer, Result, Responder, middleware::Logger};
 use actix_files as fs;
-use shared::datatypes::{HealthResponse};
-
-
-#[get("/health")]
-async fn health() -> Result<impl Responder> {
-    //HttpResponse::Ok().body("Hello")
-    let obj = HealthResponse{
-        value1: String::from("this is a value")
-    };
-    Ok(web::Json(obj))
-}
+use actix_web::{middleware::Logger, web, App, HttpServer};
+mod rest_handlers;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -18,8 +8,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            .service(web::scope("/api")
-                .service(health))
+            .service(web::scope("/api").service(rest_handlers::health))
             .service(fs::Files::new("/", "../frontend/dist").index_file("index.html"))
             .wrap(Logger::default())
     })

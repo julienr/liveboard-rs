@@ -7,7 +7,6 @@ use std::{
 };
 use yew::prelude::*;
 
-
 #[derive(Debug)]
 pub struct APIError {
     message: String,
