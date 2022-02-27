@@ -1,6 +1,7 @@
 use actix_files as fs;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 mod rest_handlers;
+mod ws_handlers;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -9,6 +10,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(web::scope("/api").service(rest_handlers::health))
+            .route("/ws/", web::get().to(ws_handlers::index))
             .service(fs::Files::new("/", "../frontend/dist").index_file("index.html"))
             .wrap(Logger::default())
     })
