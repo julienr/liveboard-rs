@@ -1,82 +1,102 @@
-use yew::prelude::*;
+use log;
 use reqwasm::http::Request;
-use shared::datatypes::{HealthResponse};
+use shared::datatypes::HealthResponse;
+use std::{
+    error::Error,
+    fmt::{self, Debug, Display, Formatter},
+};
+use yew::prelude::*;
 
-enum Msg {
-    AddOne,
-}
+enum Msg {}
 
-struct App {
-    value: i64,
-}
+struct App {}
 
 impl Component for App {
     type Message = Msg;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            value: 0,
-        }
+        Self {}
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::AddOne => {
-                self.value += 2;
-                // the value has changed so we need to
-                // re-render for it to appear on the page
-                true
-            }
-        }
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
+        true
     }
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        // This gives us a component's "`Scope`" which allows us to send messages, etc to the component.
-        let link = ctx.link();
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class="main">
-                <button onclick={link.callback(|_| Msg::AddOne)}>{ "+1" }</button>
-                <p>{ self.value }</p>
-                <APITester />
+                <APIHealthChecker />
             </div>
         }
     }
 }
 
 #[derive(Debug)]
+struct APIError {
+    message: String,
+}
+impl Display for APIError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Debug::fmt(&self.message, f)
+    }
+}
+impl Error for APIError {}
+
+// https://github.com/yewstack/yew/blob/master/examples/futures/src/main.rs
+async fn fetch_health() -> Result<HealthResponse, APIError> {
+    let resp = Request::get("/api/health")
+        .send()
+        .await
+        .unwrap()
+        .json::<HealthResponse>()
+        .await
+        .unwrap();
+
+    Ok(resp)
+}
+
+#[derive(Debug)]
 enum Msg2 {
-    Call
+    Call,
+    ReceiveResponse(HealthResponse),
+    APIError(APIError),
 }
 
-struct APITester {
+struct APIHealthChecker {
+    last_response: String,
 }
 
-impl Component for APITester {
+impl Component for APIHealthChecker {
     type Message = Msg2;
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
+            last_response: String::from("Not called yet"),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg2::Call => {
-                log::info!("APITester {:?}", msg);
-                // https://yew.rs/docs/tutorial
-                wasm_bindgen_futures::spawn_local(async move {
-                    let resp = Request::get("/api/health")
-                        .send()
-                        .await
-                        .unwrap()
-                        .json::<HealthResponse>()
-                        .await
-                        .unwrap();
-                    log::info!("resp: {:?}", resp);
+                ctx.link().send_future(async {
+                    match fetch_health().await {
+                        Ok(resp) => Msg2::ReceiveResponse(resp),
+                        Err(err) => Msg2::APIError(err),
+                    }
                 });
-                return true
+                false
+            }
+            Msg2::ReceiveResponse(resp) => {
+                log::info!("resp: {:?}", resp);
+                self.last_response = String::from("value1: ") + &resp.value1;
+                true
+            }
+            Msg2::APIError(err) => {
+                log::error!("error: {:?}", err);
+                self.last_response = String::from("ERROR: ") + &err.message;
+                true
             }
         }
     }
@@ -84,7 +104,10 @@ impl Component for APITester {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link();
         html! {
-            <button onclick={link.callback(|_| Msg2::Call)}>{ "Test API" }</button>
+            <div>
+                <p>{ &self.last_response }</p>
+                <button onclick={link.callback(|_| Msg2::Call)}>{ "Check API health" }</button>
+            </div>
         }
     }
 }

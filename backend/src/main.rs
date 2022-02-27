@@ -7,7 +7,7 @@ use shared::datatypes::{HealthResponse};
 async fn health() -> Result<impl Responder> {
     //HttpResponse::Ok().body("Hello")
     let obj = HealthResponse{
-        name: String::from("Test")
+        value1: String::from("this is a value")
     };
     Ok(web::Json(obj))
 }
