@@ -1,4 +1,5 @@
 use super::api_health_checker::APIHealthChecker;
+use super::board::Board;
 use super::ws_tester::WSTester;
 use yew::prelude::*;
 
@@ -23,6 +24,7 @@ impl Component for App {
             <div class="main">
                 <APIHealthChecker />
                 <WSTester />
+                <Board />
             </div>
         }
     }
