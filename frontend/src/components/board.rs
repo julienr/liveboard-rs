@@ -3,15 +3,18 @@ use std::f64;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
-use yew::{html, Component, Context, Html, NodeRef};
+use yew::{html, html::Scope, Component, Context, Html, NodeRef};
 
 #[derive(Debug)]
 pub enum Msg {
     Draw,
+    ButtonPressed,
+    ButtonReleased,
 }
 
 pub struct Board {
     canvas_ref: NodeRef,
+    button_pressed: bool,
 }
 
 impl Component for Board {
@@ -22,6 +25,7 @@ impl Component for Board {
         ctx.link().send_message(Msg::Draw);
         Self {
             canvas_ref: NodeRef::default(),
+            button_pressed: false,
         }
     }
 
@@ -32,21 +36,37 @@ impl Component for Board {
                 self.draw(&canvas);
                 false
             }
+            Msg::ButtonPressed => {
+                self.button_pressed = true;
+                false
+            }
+            Msg::ButtonReleased => {
+                self.button_pressed = false;
+                false
+            }
         }
     }
 
-    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
             // Good example with more complex mouse state tracking
             // https://rustwasm.github.io/wasm-bindgen/examples/paint.html
-            let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
-            let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
-                log::info!("MouseDown !");
-            }) as Box<dyn FnMut(_)>);
-            canvas
-                .add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())
-                .unwrap();
-            closure.forget();
+            self.add_canvas_event_listener(
+                ctx,
+                "mousedown",
+                move |_event: web_sys::MouseEvent, scope| {
+                    log::info!("MouseDown !");
+                    scope.send_future(async { Msg::ButtonPressed })
+                },
+            );
+            self.add_canvas_event_listener(
+                ctx,
+                "mouseup",
+                move |_event: web_sys::MouseEvent, scope| {
+                    log::info!("MouseUp !");
+                    scope.send_future(async { Msg::ButtonReleased })
+                },
+            );
         }
     }
 
@@ -95,5 +115,18 @@ impl Board {
             .unwrap();
 
         context.stroke();
+    }
+
+    fn add_canvas_event_listener<F>(&self, ctx: &Context<Self>, event: &str, cb: F)
+    where
+        F: 'static + Fn(web_sys::MouseEvent, &Scope<Board>) -> (),
+    {
+        let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
+        let scope = ctx.link().clone();
+        let closure = Closure::wrap(Box::new(move |a| cb(a, &scope)) as Box<dyn FnMut(_)>);
+        canvas
+            .add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())
+            .unwrap();
+        closure.forget();
     }
 }
