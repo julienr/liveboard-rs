@@ -1,4 +1,8 @@
+use super::ws_client::{new_ws_client, WSClient};
+use futures::SinkExt;
 use log;
+use reqwasm::websocket::Message as WsMessage;
+use shared::datatypes::Circle;
 use std::f64;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -14,16 +18,11 @@ pub enum Msg {
     MouseMove(i32, i32),
 }
 
-struct Circle {
-    x: f64,
-    y: f64,
-    radius: f64,
-}
-
 pub struct Board {
     canvas_ref: NodeRef,
     button_pressed: bool,
     circles: Vec<Circle>,
+    client: WSClient,
 }
 
 impl Component for Board {
@@ -31,11 +30,22 @@ impl Component for Board {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
+        // let scope = ctx.link().clone();
+        let client = new_ws_client(move |message: WsMessage| match message {
+            WsMessage::Text(value) => {
+                log::info!("String message {}", value);
+                // scope.send_message(Msg::MessageReceived(value));
+            }
+            WsMessage::Bytes(_value) => {
+                log::info!("Bytes message");
+            }
+        });
         ctx.link().send_message(Msg::Draw);
         Self {
             canvas_ref: NodeRef::default(),
             button_pressed: false,
             circles: Vec::new(),
+            client: client,
         }
     }
 
@@ -59,11 +69,24 @@ impl Component for Board {
             Msg::MouseMove(x, y) => {
                 if self.button_pressed {
                     log::info!("MouseMove ! {} {}", x, y);
-                    self.circles.push(Circle {
+                    let circle = Circle {
                         x: x as f64,
                         y: y as f64,
                         radius: 5.0,
+                    };
+                    let mut client = self.client.clone();
+                    let circle2 = circle.clone();
+                    ctx.link().send_future(async move {
+                        let jsonval = serde_json::to_string(&circle2).unwrap();
+                        client
+                            .sender
+                            .send(WsMessage::Text(String::from(jsonval)))
+                            .await
+                            .unwrap();
+                        // TODO: This is not really needed
+                        Msg::Draw
                     });
+                    self.circles.push(circle);
                     // Trigger a redraw
                     ctx.link().send_message(Msg::Draw);
                 }

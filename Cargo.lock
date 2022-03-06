@@ -577,6 +577,7 @@ dependencies = [
  "gloo-utils",
  "log",
  "reqwasm",
+ "serde_json",
  "shared",
  "wasm-bindgen",
  "wasm-bindgen-futures",
