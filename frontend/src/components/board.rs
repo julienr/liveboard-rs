@@ -2,6 +2,7 @@ use log;
 use std::f64;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
 use yew::{html, html::Scope, Component, Context, Html, NodeRef};
 
@@ -10,11 +11,19 @@ pub enum Msg {
     Draw,
     ButtonPressed,
     ButtonReleased,
+    MouseMove(i32, i32),
+}
+
+struct Circle {
+    x: f64,
+    y: f64,
+    radius: f64,
 }
 
 pub struct Board {
     canvas_ref: NodeRef,
     button_pressed: bool,
+    circles: Vec<Circle>,
 }
 
 impl Component for Board {
@@ -26,14 +35,17 @@ impl Component for Board {
         Self {
             canvas_ref: NodeRef::default(),
             button_pressed: false,
+            circles: Vec::new(),
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Draw => {
                 let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
-                self.draw(&canvas);
+                self.draw_smiley(&canvas);
+                self.draw_circles(&canvas);
+                log::info!("draw");
                 false
             }
             Msg::ButtonPressed => {
@@ -42,6 +54,19 @@ impl Component for Board {
             }
             Msg::ButtonReleased => {
                 self.button_pressed = false;
+                false
+            }
+            Msg::MouseMove(x, y) => {
+                if self.button_pressed {
+                    log::info!("MouseMove ! {} {}", x, y);
+                    self.circles.push(Circle {
+                        x: x as f64,
+                        y: y as f64,
+                        radius: 5.0,
+                    });
+                    // Trigger a redraw
+                    ctx.link().send_message(Msg::Draw);
+                }
                 false
             }
         }
@@ -67,6 +92,15 @@ impl Component for Board {
                     scope.send_future(async { Msg::ButtonReleased })
                 },
             );
+            self.add_canvas_event_listener(
+                ctx,
+                "mousemove",
+                move |event: web_sys::MouseEvent, scope| {
+                    let x = event.offset_x();
+                    let y = event.offset_y();
+                    scope.send_future(async move { Msg::MouseMove(x, y) })
+                },
+            );
         }
     }
 
@@ -84,13 +118,16 @@ impl Component for Board {
 }
 
 impl Board {
-    fn draw(&self, canvas: &HtmlCanvasElement) {
-        let context = canvas
+    fn get_context(&self, canvas: &HtmlCanvasElement) -> web_sys::CanvasRenderingContext2d {
+        return canvas
             .get_context("2d")
             .unwrap()
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
+    }
+    fn draw_smiley(&self, canvas: &HtmlCanvasElement) {
+        let context = self.get_context(canvas);
         context.begin_path();
 
         // Draw the outer circle.
@@ -115,6 +152,24 @@ impl Board {
             .unwrap();
 
         context.stroke();
+    }
+    fn draw_circles(&self, canvas: &HtmlCanvasElement) {
+        let context = self.get_context(canvas);
+
+        context.set_fill_style(&JsValue::from_str("blue"));
+        for circle in &self.circles {
+            context.begin_path();
+            context
+                .arc(
+                    circle.x,
+                    circle.y,
+                    circle.radius,
+                    0.0,
+                    f64::consts::PI * 2.0,
+                )
+                .unwrap();
+            context.fill();
+        }
     }
 
     fn add_canvas_event_listener<F>(&self, ctx: &Context<Self>, event: &str, cb: F)
