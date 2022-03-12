@@ -16,6 +16,7 @@ pub enum Msg {
     ButtonPressed,
     ButtonReleased,
     MouseMove(i32, i32),
+    NewCircle(Circle),
 }
 
 pub struct Board {
@@ -30,11 +31,14 @@ impl Component for Board {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        // let scope = ctx.link().clone();
+        let scope = ctx.link().clone();
         let client = new_ws_client(move |message: WsMessage| match message {
             WsMessage::Text(value) => {
                 log::info!("String message {}", value);
                 // scope.send_message(Msg::MessageReceived(value));
+                let circle: Circle = serde_json::from_str(&value).unwrap();
+                log::info!("circle message {:?}", circle);
+                scope.send_message(Msg::NewCircle(circle));
             }
             WsMessage::Bytes(_value) => {
                 log::info!("Bytes message");
@@ -51,6 +55,11 @@ impl Component for Board {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::NewCircle(circle) => {
+                self.circles.push(circle);
+                ctx.link().send_message(Msg::Draw);
+                false
+            }
             Msg::Draw => {
                 let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
                 self.draw_smiley(&canvas);

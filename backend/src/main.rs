@@ -7,8 +7,11 @@ mod ws_handlers;
 async fn main() -> std::io::Result<()> {
     simple_logger::init_with_level(log::Level::Debug).unwrap();
 
-    HttpServer::new(|| {
+    let state = web::Data::new(ws_handlers::make_state());
+
+    HttpServer::new(move || {
         App::new()
+            .app_data(state.clone())
             .service(web::scope("/api").service(rest_handlers::health))
             .route("/ws/", web::get().to(ws_handlers::index))
             .service(fs::Files::new("/", "../frontend/dist").index_file("index.html"))
