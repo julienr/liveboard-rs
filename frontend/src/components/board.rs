@@ -14,7 +14,7 @@ use yew::{html, html::Scope, Component, Context, Html, NodeRef};
 pub enum Msg {
     Draw,
     ButtonPressed,
-    ButtonReleased,
+    ButtonReleased(i32, i32),
     MouseMove(i32, i32),
     NewCircle(Circle),
 }
@@ -65,19 +65,14 @@ impl Component for Board {
                 self.draw_smiley(&canvas);
                 self.draw_circles(&canvas);
                 log::info!("draw");
-                false
+                true
             }
             Msg::ButtonPressed => {
                 self.button_pressed = true;
                 false
             }
-            Msg::ButtonReleased => {
-                self.button_pressed = false;
-                false
-            }
-            Msg::MouseMove(x, y) => {
+            Msg::ButtonReleased(x, y) => {
                 if self.button_pressed {
-                    log::info!("MouseMove ! {} {}", x, y);
                     let circle = Circle {
                         x: x as f64,
                         y: y as f64,
@@ -99,6 +94,36 @@ impl Component for Board {
                     // Trigger a redraw
                     ctx.link().send_message(Msg::Draw);
                 }
+                self.button_pressed = false;
+                false
+            }
+            Msg::MouseMove(x, y) => {
+                /*
+                if self.button_pressed {
+                    log::info!("MouseMove ! {} {}", x, y);
+                    
+                    let circle = Circle {
+                        x: x as f64,
+                        y: y as f64,
+                        radius: 5.0,
+                    };
+                    let mut client = self.client.clone();
+                    let circle2 = circle.clone();
+                    ctx.link().send_future(async move {
+                        let jsonval = serde_json::to_string(&circle2).unwrap();
+                        client
+                            .sender
+                            .send(WsMessage::Text(String::from(jsonval)))
+                            .await
+                            .unwrap();
+                        // TODO: This is not really needed
+                        Msg::Draw
+                    });
+                    self.circles.push(circle);
+                    // Trigger a redraw
+                    ctx.link().send_message(Msg::Draw);
+                }
+                */
                 false
             }
         }
@@ -119,9 +144,11 @@ impl Component for Board {
             self.add_canvas_event_listener(
                 ctx,
                 "mouseup",
-                move |_event: web_sys::MouseEvent, scope| {
+                move |event: web_sys::MouseEvent, scope| {
                     log::info!("MouseUp !");
-                    scope.send_future(async { Msg::ButtonReleased })
+                    let x = event.offset_x();
+                    let y = event.offset_y();
+                    scope.send_future(async move { Msg::ButtonReleased(x, y) })
                 },
             );
             self.add_canvas_event_listener(
@@ -139,6 +166,7 @@ impl Component for Board {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div style="margin: 10px; width: 500px; height: 500px;">
+                <p>{ self.circles.len() } { " circles" } </p>
                 <canvas
                     ref={self.canvas_ref.clone()}
                     height="500"
