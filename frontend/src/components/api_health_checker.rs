@@ -79,7 +79,7 @@ impl Component for APIHealthChecker {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link();
         html! {
-            <div>
+            <div class="overlay">
                 <p>{ &self.last_response }</p>
                 <button onclick={link.callback(|_| Msg::ButtonClicked)}>{ "Check API health" }</button>
             </div>

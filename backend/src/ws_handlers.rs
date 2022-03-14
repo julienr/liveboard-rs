@@ -1,6 +1,4 @@
-use actix::{
-    Actor, Addr, AsyncContext, Handler, Message as ActixMessage, StreamHandler,
-};
+use actix::{Actor, Addr, AsyncContext, Handler, Message as ActixMessage, StreamHandler};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use std::ops::Deref;
@@ -25,7 +23,6 @@ pub struct Message(pub String);
 pub struct WsActor {
     state: Arc<State>,
 }
-
 
 impl Actor for WsActor {
     type Context = ws::WebsocketContext<Self>;

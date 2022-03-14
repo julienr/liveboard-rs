@@ -63,6 +63,22 @@ impl Component for Board {
             }
             Msg::Draw => {
                 let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
+                canvas.set_width(
+                    web_sys::window()
+                        .unwrap()
+                        .inner_width()
+                        .unwrap()
+                        .as_f64()
+                        .unwrap() as u32,
+                );
+                canvas.set_height(
+                    web_sys::window()
+                        .unwrap()
+                        .inner_height()
+                        .unwrap()
+                        .as_f64()
+                        .unwrap() as u32,
+                );
                 self.draw_smiley(&canvas);
                 self.draw_circles(&canvas);
                 log::info!("draw");
@@ -166,13 +182,15 @@ impl Component for Board {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div style="margin: 10px; width: 500px; height: 500px;">
-                <p>{ self.circles.len() } { " circles" } </p>
+            <div>
+                <div style="position: absolute; bottom: 0; left: 0; margin: 5px;">
+                    <p>{ self.circles.len() } { " circles" } </p>
+                </div>
                 <canvas
                     ref={self.canvas_ref.clone()}
                     height="500"
                     width="500"
-                    style="border: 1px dashed gray; height:100%; width: 100%;" />
+                     />
             </div>
         }
     }
