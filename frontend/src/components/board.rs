@@ -31,6 +31,7 @@ impl Component for Board {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
+        log::info!("Board::create");
         let scope = ctx.link().clone();
         let client = new_ws_client(move |message: WsMessage| match message {
             WsMessage::Text(value) => {
@@ -101,7 +102,7 @@ impl Component for Board {
                 /*
                 if self.button_pressed {
                     log::info!("MouseMove ! {} {}", x, y);
-                    
+
                     let circle = Circle {
                         x: x as f64,
                         y: y as f64,

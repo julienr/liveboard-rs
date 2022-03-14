@@ -1,6 +1,5 @@
 use super::api_health_checker::APIHealthChecker;
 use super::board::Board;
-use super::ws_tester::WSTester;
 use yew::prelude::*;
 
 pub enum Msg {}
@@ -23,7 +22,6 @@ impl Component for App {
         html! {
             <div class="main">
                 <APIHealthChecker />
-                <WSTester />
                 <Board />
             </div>
         }

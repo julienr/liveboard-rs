@@ -1,10 +1,12 @@
-use actix::{Actor, Addr, AsyncContext, ActorContext, Handler, Message as ActixMessage, StreamHandler};
+use actix::{
+    Actor, ActorContext, Addr, AsyncContext, Handler, Message as ActixMessage, StreamHandler,
+};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::time::{ Duration, Instant };
+use std::time::{Duration, Instant};
 
 pub struct State {
     pub clients: Mutex<Vec<Addr<WsActor>>>,
@@ -24,7 +26,6 @@ pub struct Message(pub String);
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
-
 pub struct WsActor {
     state: Arc<State>,
     last_heartbeat: Instant,
@@ -36,7 +37,7 @@ impl WsActor {
             if Instant::now().duration_since(act.last_heartbeat) > CLIENT_TIMEOUT {
                 println!("ws actor client heartbeat failed, disconnecting");
                 ctx.stop();
-                return
+                return;
             }
             ctx.ping(b"");
         });
@@ -87,7 +88,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
                 println!("ping");
                 self.last_heartbeat = Instant::now();
                 ctx.pong(&msg)
-            },
+            }
             Ok(ws::Message::Pong(_)) => {
                 println!("pong");
                 self.last_heartbeat = Instant::now();
