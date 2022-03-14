@@ -24,6 +24,7 @@ pub struct Board {
     button_pressed: bool,
     circles: Vec<Circle>,
     client: WSClient,
+    color: String
 }
 
 impl Component for Board {
@@ -32,6 +33,7 @@ impl Component for Board {
 
     fn create(ctx: &Context<Self>) -> Self {
         log::info!("Board::create");
+
         let scope = ctx.link().clone();
         let client = new_ws_client(move |message: WsMessage| match message {
             WsMessage::Text(value) => {
@@ -51,6 +53,8 @@ impl Component for Board {
             button_pressed: false,
             circles: Vec::new(),
             client: client,
+            // TODO: Randomly generate color for each client
+            color: String::from("red"),
         }
     }
 
@@ -94,6 +98,7 @@ impl Component for Board {
                         x: x as f64,
                         y: y as f64,
                         radius: 5.0,
+                        color: self.color.clone()
                     };
                     let mut client = self.client.clone();
                     let circle2 = circle.clone();
@@ -234,9 +239,8 @@ impl Board {
     }
     fn draw_circles(&self, canvas: &HtmlCanvasElement) {
         let context = self.get_context(canvas);
-
-        context.set_fill_style(&JsValue::from_str("blue"));
         for circle in &self.circles {
+            context.set_fill_style(&JsValue::from_str(&circle.color));
             context.begin_path();
             context
                 .arc(

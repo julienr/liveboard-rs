@@ -10,6 +10,7 @@ pub struct Circle {
     pub x: f64,
     pub y: f64,
     pub radius: f64,
+    pub color: String,
 }
 
 impl Clone for Circle {
@@ -18,6 +19,7 @@ impl Clone for Circle {
             x: self.x,
             y: self.y,
             radius: self.radius,
+            color: self.color.clone()
         }
     }
 }
