@@ -27,4 +27,5 @@ features = [
   'Element',
   'HtmlCanvasElement',
   'Window',
+  'Crypto',
 ]

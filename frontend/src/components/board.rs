@@ -2,7 +2,7 @@ use super::ws_client::{new_ws_client, WSClient};
 use futures::SinkExt;
 use log;
 use reqwasm::websocket::Message as WsMessage;
-use shared::datatypes::Circle;
+use shared::datatypes::{Circle, Color};
 use std::f64;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -24,7 +24,7 @@ pub struct Board {
     button_pressed: bool,
     circles: Vec<Circle>,
     client: WSClient,
-    color: String
+    color: Color,
 }
 
 impl Component for Board {
@@ -32,8 +32,8 @@ impl Component for Board {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        log::info!("Board::create");
-
+        let window = web_sys::window().unwrap();
+        let crypto = window.crypto().unwrap();
         let scope = ctx.link().clone();
         let client = new_ws_client(move |message: WsMessage| match message {
             WsMessage::Text(value) => {
@@ -48,13 +48,19 @@ impl Component for Board {
             }
         });
         ctx.link().send_message(Msg::Draw);
+        let mut tmp = [0u8, 0u8, 0u8];
+        crypto.get_random_values_with_u8_array(&mut tmp).unwrap();
+        let color = Color {
+            r: tmp[0],
+            g: tmp[1],
+            b: tmp[2],
+        };
         Self {
             canvas_ref: NodeRef::default(),
             button_pressed: false,
             circles: Vec::new(),
             client: client,
-            // TODO: Randomly generate color for each client
-            color: String::from("red"),
+            color: color,
         }
     }
 
@@ -98,7 +104,7 @@ impl Component for Board {
                         x: x as f64,
                         y: y as f64,
                         radius: 5.0,
-                        color: self.color.clone()
+                        color: self.color,
                     };
                     let mut client = self.client.clone();
                     let circle2 = circle.clone();
@@ -186,11 +192,16 @@ impl Component for Board {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
+        let style = format!(
+            "width: 100%; height: 10px; background-color: {}",
+            self.color.hex_color()
+        );
         html! {
             <div>
                 <div style="position: absolute; bottom: 0; left: 0; margin: 5px;">
                     <p>{ self.circles.len() } { " circles" } </p>
                 </div>
+                <div { style }></div>
                 <canvas
                     ref={self.canvas_ref.clone()}
                     height="500"
@@ -239,8 +250,9 @@ impl Board {
     }
     fn draw_circles(&self, canvas: &HtmlCanvasElement) {
         let context = self.get_context(canvas);
+
         for circle in &self.circles {
-            context.set_fill_style(&JsValue::from_str(&circle.color));
+            context.set_fill_style(&JsValue::from_str(&circle.color.hex_color()));
             context.begin_path();
             context
                 .arc(
