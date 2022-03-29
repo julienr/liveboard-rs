@@ -6,6 +6,20 @@ pub struct HealthResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum SocketMessage {
+    Circle(Circle),
+    Pointer(PointerPosition),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PointerPosition {
+    pub id: String,
+    pub x: f64,
+    pub y: f64,
+    pub color: Color,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Circle {
     pub x: f64,
     pub y: f64,

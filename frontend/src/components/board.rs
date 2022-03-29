@@ -2,7 +2,8 @@ use super::ws_client::{new_ws_client, WSClient};
 use futures::SinkExt;
 use log;
 use reqwasm::websocket::Message as WsMessage;
-use shared::datatypes::{Circle, Color};
+use shared::datatypes::{Circle, Color, PointerPosition, SocketMessage};
+use std::collections::HashMap;
 use std::f64;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -17,14 +18,19 @@ pub enum Msg {
     ButtonReleased(i32, i32),
     MouseMove(i32, i32),
     NewCircle(Circle),
+    OtherPointerMoved(PointerPosition),
 }
 
 pub struct Board {
     canvas_ref: NodeRef,
     button_pressed: bool,
     circles: Vec<Circle>,
+    other_pointers: HashMap<String, PointerPosition>,
     client: WSClient,
     color: Color,
+    id: String,
+    last_pointer_update: f64,
+    performance: web_sys::Performance,
 }
 
 impl Component for Board {
@@ -37,11 +43,18 @@ impl Component for Board {
         let scope = ctx.link().clone();
         let client = new_ws_client(move |message: WsMessage| match message {
             WsMessage::Text(value) => {
-                log::info!("String message {}", value);
-                // scope.send_message(Msg::MessageReceived(value));
-                let circle: Circle = serde_json::from_str(&value).unwrap();
-                log::info!("circle message {:?}", circle);
-                scope.send_message(Msg::NewCircle(circle));
+                // log::info!("String message {}", value);
+                let m: SocketMessage = serde_json::from_str(&value).unwrap();
+                match m {
+                    SocketMessage::Circle(circle) => {
+                        log::info!("circle message {:?}", circle);
+                        scope.send_message(Msg::NewCircle(circle));
+                    }
+                    SocketMessage::Pointer(pointer_position) => {
+                        log::info!("pointer update {:?}", pointer_position);
+                        scope.send_message(Msg::OtherPointerMoved(pointer_position));
+                    }
+                }
             }
             WsMessage::Bytes(_value) => {
                 log::info!("Bytes message");
@@ -55,12 +68,19 @@ impl Component for Board {
             g: tmp[1],
             b: tmp[2],
         };
+        let performance = window
+            .performance()
+            .expect("window.performance should be available");
         Self {
             canvas_ref: NodeRef::default(),
             button_pressed: false,
             circles: Vec::new(),
+            other_pointers: HashMap::new(),
             client: client,
             color: color,
+            id: color.hex_color(),
+            last_pointer_update: performance.now(),
+            performance: performance,
         }
     }
 
@@ -91,7 +111,7 @@ impl Component for Board {
                 );
                 self.draw_smiley(&canvas);
                 self.draw_circles(&canvas);
-                log::info!("draw");
+                self.draw_pointers(&canvas);
                 true
             }
             Msg::ButtonPressed => {
@@ -109,7 +129,8 @@ impl Component for Board {
                     let mut client = self.client.clone();
                     let circle2 = circle.clone();
                     ctx.link().send_future(async move {
-                        let jsonval = serde_json::to_string(&circle2).unwrap();
+                        let m = SocketMessage::Circle(circle2);
+                        let jsonval = serde_json::to_string(&m).unwrap();
                         client
                             .sender
                             .send(WsMessage::Text(String::from(jsonval)))
@@ -126,32 +147,33 @@ impl Component for Board {
                 false
             }
             Msg::MouseMove(x, y) => {
-                /*
-                if self.button_pressed {
-                    log::info!("MouseMove ! {} {}", x, y);
-
-                    let circle = Circle {
+                let curr_time = self.performance.now();
+                if (curr_time - self.last_pointer_update) > 200.0 {
+                    self.last_pointer_update = curr_time;
+                    let pointer_pos = PointerPosition {
+                        id: self.id.clone(),
                         x: x as f64,
                         y: y as f64,
-                        radius: 5.0,
+                        color: self.color,
                     };
                     let mut client = self.client.clone();
-                    let circle2 = circle.clone();
                     ctx.link().send_future(async move {
-                        let jsonval = serde_json::to_string(&circle2).unwrap();
+                        let m = SocketMessage::Pointer(pointer_pos);
+                        let jsonval = serde_json::to_string(&m).unwrap();
                         client
                             .sender
                             .send(WsMessage::Text(String::from(jsonval)))
                             .await
                             .unwrap();
-                        // TODO: This is not really needed
                         Msg::Draw
                     });
-                    self.circles.push(circle);
-                    // Trigger a redraw
-                    ctx.link().send_message(Msg::Draw);
                 }
-                */
+                false
+            }
+            Msg::OtherPointerMoved(pointer_position) => {
+                self.other_pointers
+                    .insert(pointer_position.id.clone(), pointer_position);
+                ctx.link().send_message(Msg::Draw);
                 false
             }
         }
@@ -263,6 +285,19 @@ impl Board {
                     f64::consts::PI * 2.0,
                 )
                 .unwrap();
+            context.fill();
+        }
+    }
+
+    fn draw_pointers(&self, canvas: &HtmlCanvasElement) {
+        const size: f64 = 20.0;
+        let context = self.get_context(canvas);
+        for (_, pointer_position) in &self.other_pointers {
+            context.set_fill_style(&JsValue::from_str(&pointer_position.color.hex_color()));
+            context.begin_path();
+            context.move_to(pointer_position.x, pointer_position.y);
+            context.line_to(pointer_position.x + size, pointer_position.y);
+            context.line_to(pointer_position.x, pointer_position.y + size / 2.0);
             context.fill();
         }
     }
