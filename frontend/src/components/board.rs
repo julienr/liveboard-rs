@@ -9,6 +9,7 @@ use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
+use web_sys::Path2d;
 use yew::{html, html::Scope, Component, Context, Html, NodeRef};
 
 #[derive(Debug)]
@@ -290,15 +291,16 @@ impl Board {
     }
 
     fn draw_pointers(&self, canvas: &HtmlCanvasElement) {
-        const size: f64 = 20.0;
         let context = self.get_context(canvas);
+        // A path2d for a SVG mouse cursor icon
+        let path =
+            Path2d::new_with_path_string("M 8.2,20.9 V 4.9 L 19.8,16.5 H 13 l -0.4,0.1 z").unwrap();
         for (_, pointer_position) in &self.other_pointers {
             context.set_fill_style(&JsValue::from_str(&pointer_position.color.hex_color()));
-            context.begin_path();
-            context.move_to(pointer_position.x, pointer_position.y);
-            context.line_to(pointer_position.x + size, pointer_position.y);
-            context.line_to(pointer_position.x, pointer_position.y + size / 2.0);
-            context.fill();
+            context
+                .set_transform(1., 0., 0., 1., pointer_position.x, pointer_position.y)
+                .unwrap();
+            context.fill_with_path_2d(&path);
         }
     }
 

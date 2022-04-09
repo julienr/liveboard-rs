@@ -29,4 +29,5 @@ features = [
   'Window',
   'Crypto',
   'Performance',
+  'Path2d',
 ]
