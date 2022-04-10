@@ -1,4 +1,6 @@
 use super::ws_client::{new_ws_client, WSClient};
+use crate::live_cursor::LiveCursor;
+use crate::utils::set_interval;
 use futures::SinkExt;
 use log;
 use reqwasm::websocket::Message as WsMessage;
@@ -26,13 +28,18 @@ pub struct Board {
     canvas_ref: NodeRef,
     button_pressed: bool,
     circles: Vec<Circle>,
-    other_pointers: HashMap<String, PointerPosition>,
+    other_pointers: HashMap<String, LiveCursor>,
     client: WSClient,
     color: Color,
     id: String,
     last_pointer_update: f64,
     performance: web_sys::Performance,
 }
+
+// Mouse position spline:
+// https://github.com/steveruizok/perfect-cursors
+// https://www.mvps.org/directx/articles/catmull/
+// http://graphics.cs.cmu.edu/nsp/course/15-462/Fall04/assts/catmullRom.pdf
 
 impl Component for Board {
     type Message = Msg;
@@ -48,11 +55,11 @@ impl Component for Board {
                 let m: SocketMessage = serde_json::from_str(&value).unwrap();
                 match m {
                     SocketMessage::Circle(circle) => {
-                        log::info!("circle message {:?}", circle);
+                        // log::info!("circle message {:?}", circle);
                         scope.send_message(Msg::NewCircle(circle));
                     }
                     SocketMessage::Pointer(pointer_position) => {
-                        log::info!("pointer update {:?}", pointer_position);
+                        // log::info!("pointer update {:?}", pointer_position);
                         scope.send_message(Msg::OtherPointerMoved(pointer_position));
                     }
                 }
@@ -110,6 +117,10 @@ impl Component for Board {
                         .as_f64()
                         .unwrap() as u32,
                 );
+                // Update cursors interpolation
+                for (_, live_cursor) in self.other_pointers.iter_mut() {
+                    live_cursor.tick();
+                }
                 self.draw_smiley(&canvas);
                 self.draw_circles(&canvas);
                 self.draw_pointers(&canvas);
@@ -172,8 +183,18 @@ impl Component for Board {
                 false
             }
             Msg::OtherPointerMoved(pointer_position) => {
-                self.other_pointers
-                    .insert(pointer_position.id.clone(), pointer_position);
+                let key = pointer_position.id.clone();
+                if self.other_pointers.contains_key(&key) {
+                    self.other_pointers
+                        .get_mut(&key)
+                        .unwrap()
+                        .add_point(pointer_position.x, pointer_position.y);
+                } else {
+                    self.other_pointers.insert(
+                        pointer_position.id.clone(),
+                        LiveCursor::new(pointer_position),
+                    );
+                }
                 ctx.link().send_message(Msg::Draw);
                 false
             }
@@ -211,6 +232,17 @@ impl Component for Board {
                     scope.send_future(async move { Msg::MouseMove(x, y) })
                 },
             );
+            // Setup regular redraw to animate other pointers
+            {
+                let scope = ctx.link().clone();
+                let callback = Closure::wrap(Box::new(move || {
+                    scope.send_message(Msg::Draw);
+                }) as Box<dyn FnMut()>);
+                set_interval(&callback, 16);
+                // See https://rustwasm.github.io/wasm-bindgen/examples/closures.html
+                // This is leaking memory, so not a brilliant idea
+                callback.forget();
+            }
         }
     }
 
@@ -295,11 +327,11 @@ impl Board {
         // A path2d for a SVG mouse cursor icon
         let path =
             Path2d::new_with_path_string("M 8.2,20.9 V 4.9 L 19.8,16.5 H 13 l -0.4,0.1 z").unwrap();
-        for (_, pointer_position) in &self.other_pointers {
-            context.set_fill_style(&JsValue::from_str(&pointer_position.color.hex_color()));
-            context
-                .set_transform(1., 0., 0., 1., pointer_position.x, pointer_position.y)
-                .unwrap();
+        for (_, live_cursor) in &self.other_pointers {
+            let color = live_cursor.color;
+            let pos = live_cursor.current_position;
+            context.set_fill_style(&JsValue::from_str(&color.hex_color()));
+            context.set_transform(1., 0., 0., 1., pos.0, pos.1).unwrap();
             context.fill_with_path_2d(&path);
         }
     }
