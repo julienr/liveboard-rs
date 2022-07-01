@@ -26,11 +26,9 @@ https://rustwasm.github.io/docs/book/game-of-life/setup.html
 
 And then start dev servers:
 
-    $ cd backend
-    $ ./watch.sh
+    $ make backend_watch
 
-    $ cd frontend
-    $ ./watch.sh
+    $ make frontend_watch
 
 ## Inspirations
 
