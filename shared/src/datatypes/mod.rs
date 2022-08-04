@@ -50,3 +50,14 @@ impl Color {
         return format!("#{}", hex::encode([self.r, self.g, self.b]));
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Board {
+    pub name: String,
+    pub id: i32,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateBoardRequest {
+    pub name: String,
+}

@@ -3,12 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <title>Yew App</title>
+  
+
     <style>
       body, html {
         margin: 0;
         padding: 0;
         height: 100%;
         width: 100%;
+        background-color: #353535;
+        color: #fff;  
+      }
+
+      a {
+        color: #ddd;
+        text-decoration: underline;
+      }
+
+      a:hover {
+        color: #fff;
       }
 
       .main {
@@ -27,9 +40,39 @@
         padding: 5px;
         background-color: #aaa;
       }
+
+      .card {
+        padding: 10px;
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em, rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em, rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+        border-radius: 6px;
+        box-sizing: border-box;
+        min-width: 150px;
+        min-height: 150px;
+      }
+
+      .cards-container {
+        display: flex;
+        gap: 30px 30px;
+      }
+
+      .center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .section {
+        margin: 30px;
+      }
+
+      form {
+
+      }
     </style>
+
+    <!-- empty favicon -->
+    <link rel="icon" href="data:;base64,=">
   </head>
   <body>
-
   </body>
 </html>

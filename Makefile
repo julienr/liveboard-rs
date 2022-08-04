@@ -7,6 +7,7 @@ help:
 	@echo   - make frontend_watch
 	@echo   - start_db
 	@echo   - reset_db
+	@echo   - format
 
 backend_watch:
 	cd backend; cargo watch -x run
@@ -19,3 +20,6 @@ frontend_watch:
 
 start_db:
 	docker-compose up
+
+format:
+	cargo fmt

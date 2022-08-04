@@ -1,8 +1,8 @@
 use futures::channel::mpsc::UnboundedSender;
 use futures::{future, pin_mut};
 use futures::{SinkExt, StreamExt};
+use gloo_net::websocket::{futures::WebSocket, Message as WsMessage};
 use log;
-use reqwasm::websocket::{futures::WebSocket, Message as WsMessage};
 
 type WsSender = UnboundedSender<WsMessage>;
 

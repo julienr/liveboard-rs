@@ -1,35 +1,8 @@
+use crate::api::{fetch_health, APIError};
 use log;
-use reqwasm::http::Request;
 use shared::datatypes::HealthResponse;
-use std::{
-    error::Error,
-    fmt::{self, Debug, Display, Formatter},
-};
+use std::fmt::Debug;
 use yew::prelude::*;
-
-#[derive(Debug)]
-pub struct APIError {
-    message: String,
-}
-impl Display for APIError {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Debug::fmt(&self.message, f)
-    }
-}
-impl Error for APIError {}
-
-// https://github.com/yewstack/yew/blob/master/examples/futures/src/main.rs
-async fn fetch_health() -> Result<HealthResponse, APIError> {
-    let resp = Request::get("/api/health")
-        .send()
-        .await
-        .unwrap()
-        .json::<HealthResponse>()
-        .await
-        .unwrap();
-
-    Ok(resp)
-}
 
 #[derive(Debug)]
 pub enum Msg {
