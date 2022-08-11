@@ -8,6 +8,7 @@ help:
 	@echo   - start_db
 	@echo   - reset_db
 	@echo   - format
+	@echo   - lint
 
 backend_watch:
 	cd backend; cargo watch -x run
@@ -23,3 +24,6 @@ start_db:
 
 format:
 	cargo fmt
+
+lint:
+	cargo clippy
