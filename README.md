@@ -1,8 +1,10 @@
 # liveboard-rs
 
-This is a prototype of using full-stack Rust to build a collaborative web dashboard.
+This is a prototype of using full-stack Rust to build a collaborative web whiteboard.
 
 This uses [Yew](https://yew.rs/) for the frontend (Vue-like Rust framework), [actix](https://actix.rs/) for the backend (websocket + HTTP API).
+
+The backend relies on a postgres database accessed through `tokio-pg-mapper`.
 
 Another interesting feature of Rust is it allows sharing types between backend and frontend, removing the need to sync validation logic or helper methods between two languages. See [shared/src/datatypes/mod.rs](shared/src/datatypes/mod.rs).
 
