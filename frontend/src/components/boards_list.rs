@@ -71,18 +71,10 @@ impl Component for BoardsList {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-          <div>
-          {
-            if self.loading {
-              html! {
-                <p>{"Loading..."}</p>
-              }
-            } else {
-              { self.view_boards(&self.boards) }
-            }
-          }
-          { self.view_new_board_form(ctx.link()) }
-          </div>
+          <main class="container" aria-busy={ if self.loading { "true" } else { "false" } }>
+            { self.view_boards(&self.boards) }
+            { self.view_new_board_form(ctx.link()) }
+          </main>
         }
     }
 }
@@ -100,9 +92,12 @@ impl BoardsList {
     }
     fn view_boards(&self, boards: &Vec<Board>) -> Html {
         html! {
-          <div class="section cards-container">
-          { boards.iter().map(|b| self.view_board_card(b)).collect::<Html>() }
-          </div>
+          <article>
+            <h3>{"Boards"}</h3>
+            <div class="cards-container">
+            { boards.iter().map(|b| self.view_board_card(b)).collect::<Html>() }
+            </div>
+          </article>
         }
     }
     fn view_new_board_form(&self, link: &Scope<Self>) -> Html {
@@ -113,14 +108,14 @@ impl BoardsList {
             Msg::CreateBoard(name)
         });
         html! {
-          <div class="section">
-            <p>{"Create new board"}</p>
+          <article>
+            <h3>{"Create new board"}</h3>
             <form ref={self.create_form_ref.clone()}>
               <label for="name">{"Name"}</label>
               <input ref={self.create_form_name_ref.clone()} id="name" type="text" name="name" /><br/>
               <input {onclick} type="submit" value="Create" />
             </form>
-          </div>
+          </article>
         }
     }
 }
