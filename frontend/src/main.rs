@@ -24,7 +24,7 @@ fn switch(route: &Route) -> Html {
         }
         Route::BoardView { id } => {
             return html! {
-                <Board />
+                <Board id={id.to_owned()} />
             }
         }
     }

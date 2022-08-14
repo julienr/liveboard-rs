@@ -12,7 +12,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlCanvasElement;
 use web_sys::Path2d;
-use yew::{html, html::Scope, Component, Context, Html, NodeRef};
+use yew::{html, html::Scope, Component, Context, Html, NodeRef, Properties};
 
 #[derive(Debug)]
 pub enum Msg {
@@ -36,6 +36,11 @@ pub struct Board {
     performance: web_sys::Performance,
 }
 
+#[derive(Clone, PartialEq, Properties)]
+pub struct BoardProps {
+    pub id: String,
+}
+
 // Mouse position spline:
 // https://github.com/steveruizok/perfect-cursors
 // https://www.mvps.org/directx/articles/catmull/
@@ -43,7 +48,7 @@ pub struct Board {
 
 impl Component for Board {
     type Message = Msg;
-    type Properties = ();
+    type Properties = BoardProps;
 
     fn create(ctx: &Context<Self>) -> Self {
         let window = web_sys::window().unwrap();
@@ -238,7 +243,7 @@ impl Component for Board {
         }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let style = format!(
             "width: 100%; height: 10px; background-color: {}",
             self.color.hex_color()
@@ -247,6 +252,7 @@ impl Component for Board {
             <div>
                 <div style="position: absolute; bottom: 0; left: 0; margin: 5px;">
                     <p>{ self.circles.len() } { " circles" } </p>
+                    <p>{"id: "}{ ctx.props().id.to_owned() }</p>
                 </div>
                 <div { style }></div>
                 <canvas
