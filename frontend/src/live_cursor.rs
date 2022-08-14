@@ -44,7 +44,7 @@ impl Spline {
         let q1 = 1.0 + (tau - 3.0) * tt + (2.0 - tau) * ttt;
         let q2 = tau * t + (3.0 - 2.0 * tau) * tt + (tau - 2.0) * ttt;
         let q3 = -tau * tt + tau * ttt;
-        return (
+        (
             self.points[p0].0 * q0
                 + self.points[p1].0 * q1
                 + self.points[p2].0 * q2
@@ -53,7 +53,7 @@ impl Spline {
                 + self.points[p1].1 * q1
                 + self.points[p2].1 * q2
                 + self.points[p3].1 * q3,
-        );
+        )
     }
 }
 
@@ -86,7 +86,7 @@ impl LiveCursor {
             color: pos.color,
             current_position: (pos.x, pos.y),
             last_add_point: performance.now(),
-            performance: performance,
+            performance,
             spline: Spline::new(),
             anim_queue: VecDeque::new(),
         }
@@ -112,7 +112,7 @@ impl LiveCursor {
             // Enqueue an animation
             let animation = Animation {
                 start_index: self.spline.points.len() - 3,
-                duration: duration,
+                duration,
                 started_at: None,
             };
             self.anim_queue.push_back(animation);
@@ -144,7 +144,7 @@ impl LiveCursor {
                     }
                 }
                 None => {
-                    if self.spline.points.len() >= 1 {
+                    if !self.spline.points.is_empty() {
                         let point = self.spline.points[self.spline.points.len() - 1];
                         self.current_position = (point.0, point.1);
                     }

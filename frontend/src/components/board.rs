@@ -84,11 +84,11 @@ impl Component for Board {
             button_pressed: false,
             circles: Vec::new(),
             other_pointers: HashMap::new(),
-            client: client,
-            color: color,
+            client,
+            color,
             id: color.hex_color(),
             last_pointer_update: performance.now(),
-            performance: performance,
+            performance,
         }
     }
 
@@ -143,11 +143,7 @@ impl Component for Board {
                     ctx.link().send_future(async move {
                         let m = SocketMessage::Circle(circle2);
                         let jsonval = serde_json::to_string(&m).unwrap();
-                        client
-                            .sender
-                            .send(WsMessage::Text(String::from(jsonval)))
-                            .await
-                            .unwrap();
+                        client.sender.send(WsMessage::Text(jsonval)).await.unwrap();
                         // TODO: This is not really needed
                         Msg::Draw
                     });
@@ -172,11 +168,7 @@ impl Component for Board {
                     ctx.link().send_future(async move {
                         let m = SocketMessage::Pointer(pointer_pos);
                         let jsonval = serde_json::to_string(&m).unwrap();
-                        client
-                            .sender
-                            .send(WsMessage::Text(String::from(jsonval)))
-                            .await
-                            .unwrap();
+                        client.sender.send(WsMessage::Text(jsonval)).await.unwrap();
                         Msg::Draw
                     });
                 }
@@ -269,12 +261,12 @@ impl Component for Board {
 
 impl Board {
     fn get_context(&self, canvas: &HtmlCanvasElement) -> web_sys::CanvasRenderingContext2d {
-        return canvas
+        canvas
             .get_context("2d")
             .unwrap()
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
-            .unwrap();
+            .unwrap()
     }
     fn draw_smiley(&self, canvas: &HtmlCanvasElement) {
         let context = self.get_context(canvas);
@@ -327,7 +319,7 @@ impl Board {
         // A path2d for a SVG mouse cursor icon
         let path =
             Path2d::new_with_path_string("M 8.2,20.9 V 4.9 L 19.8,16.5 H 13 l -0.4,0.1 z").unwrap();
-        for (_, live_cursor) in &self.other_pointers {
+        for live_cursor in self.other_pointers.values() {
             let color = live_cursor.color;
             let pos = live_cursor.current_position;
             context.set_fill_style(&JsValue::from_str(&color.hex_color()));
@@ -338,7 +330,7 @@ impl Board {
 
     fn add_canvas_event_listener<F>(&self, ctx: &Context<Self>, event: &str, cb: F)
     where
-        F: 'static + Fn(web_sys::MouseEvent, &Scope<Board>) -> (),
+        F: 'static + Fn(web_sys::MouseEvent, &Scope<Board>),
     {
         let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
         let scope = ctx.link().clone();

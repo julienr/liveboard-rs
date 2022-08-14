@@ -15,7 +15,7 @@ pub fn set_interval(f: &Closure<dyn FnMut()>, interval: i32) {
 }
 
 pub fn performance() -> web_sys::Performance {
-    return window()
+    window()
         .performance()
-        .expect("window.performance should be available");
+        .expect("window.performance should be available")
 }

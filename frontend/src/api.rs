@@ -34,7 +34,7 @@ pub async fn fetch_boards() -> Result<Vec<Board>, APIError> {
 }
 
 pub async fn create_board(name: String) -> Result<Board, APIError> {
-    let req = CreateBoardRequest { name: name };
+    let req = CreateBoardRequest { name };
     let resp = Request::post("/api/boards")
         .json(&req)?
         .send()

@@ -2,7 +2,6 @@ use futures::channel::mpsc::UnboundedSender;
 use futures::{future, pin_mut};
 use futures::{SinkExt, StreamExt};
 use gloo_net::websocket::{futures::WebSocket, Message as WsMessage};
-use log;
 
 type WsSender = UnboundedSender<WsMessage>;
 
@@ -12,7 +11,7 @@ pub struct WSClient {
 
 pub fn new_ws_client<F>(handle_message: F) -> WSClient
 where
-    F: 'static + Fn(WsMessage) -> (),
+    F: 'static + Fn(WsMessage),
 {
     let window = web_sys::window().unwrap();
     let location = window.location();
@@ -55,7 +54,7 @@ where
         }
     });
 
-    return WSClient { sender: write_tx };
+    WSClient { sender: write_tx }
 }
 
 impl WSClient {}

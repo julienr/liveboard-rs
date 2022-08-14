@@ -1,6 +1,6 @@
 use super::db;
 use super::db::{get_boards, State};
-use actix_web::{error, get, post, web, Responder, Result};
+use actix_web::{get, post, web, Responder, Result};
 use shared::datatypes::CreateBoardRequest;
 
 #[post("/boards")]

@@ -61,11 +61,11 @@ pub mod models {
 
     impl Board {
         pub fn new(name: String) -> Board {
-            return Board {
+            Board {
                 id: 0,
                 created_at: Utc::now().naive_utc(),
-                name: name,
-            };
+                name,
+            }
         }
     }
 
@@ -79,7 +79,7 @@ pub mod models {
 use deadpool_postgres::Client;
 use deadpool_postgres::{Config, Pool};
 use errors::MyError;
-use models::{Board, Shape};
+use models::Board;
 use std::env;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::NoTls;
@@ -101,7 +101,7 @@ pub fn make_state() -> State {
     cfg.dbname = Some("liveboard".to_string());
     let pool = cfg.create_pool(None, NoTls).unwrap();
 
-    return State { pool: pool.clone() };
+    State { pool }
 }
 
 async fn get_by_id<T: FromTokioPostgresRow>(client: &Client, id: i32) -> Result<T, MyError> {
@@ -114,7 +114,7 @@ async fn get_by_id<T: FromTokioPostgresRow>(client: &Client, id: i32) -> Result<
     let stmt = client.prepare(&stmt).await.unwrap();
     let row = client.query_one(&stmt, &[]).await?;
     let t = T::from_row_ref(&row).unwrap();
-    return Ok(t);
+    Ok(t)
 }
 
 async fn list<T: FromTokioPostgresRow>(client: &Client) -> Result<Vec<T>, MyError> {
@@ -130,10 +130,10 @@ async fn list<T: FromTokioPostgresRow>(client: &Client) -> Result<Vec<T>, MyErro
         .iter()
         .map(|row| T::from_row_ref(row))
         .collect::<Result<Vec<T>, tokio_pg_mapper::Error>>();
-    return match r {
+    match r {
         Ok(v) => Ok(v),
         Err(_v) => Err(MyError::NotFound),
-    };
+    }
 }
 
 async fn insert<T: Insertable + FromTokioPostgresRow>(
@@ -162,19 +162,15 @@ async fn insert<T: Insertable + FromTokioPostgresRow>(
     let id: i32 = row.get(0);
     let t: T = get_by_id(client, id).await?;
 
-    return Ok(t);
-}
-
-pub async fn get_shapes(client: &Client) -> Result<Vec<Shape>, MyError> {
-    return list::<Shape>(client).await;
+    Ok(t)
 }
 
 pub async fn get_boards(client: &Client) -> Result<Vec<Board>, MyError> {
-    return list::<Board>(client).await;
+    list::<Board>(client).await
 }
 
 pub async fn create_board(client: &Client, name: String) -> Result<Board, MyError> {
     let b = Board::new(name);
     let board = insert(client, &b).await?;
-    return Ok(board);
+    Ok(board)
 }

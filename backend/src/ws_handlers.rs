@@ -10,9 +10,9 @@ pub struct State {
 }
 
 pub fn make_state() -> State {
-    return State {
+    State {
         clients: Mutex::new(Vec::new()),
-    };
+    }
 }
 
 // Used to communicate between WS actors

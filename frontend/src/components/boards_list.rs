@@ -90,7 +90,7 @@ impl BoardsList {
           </Link<Route>>
         }
     }
-    fn view_boards(&self, boards: &Vec<Board>) -> Html {
+    fn view_boards(&self, boards: &[Board]) -> Html {
         html! {
           <article>
             <h3>{"Boards"}</h3>
