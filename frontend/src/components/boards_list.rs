@@ -84,8 +84,7 @@ impl BoardsList {
         html! {
           <Link<Route> to={Route::BoardView { id: board.id.to_string() }}>
             <div class="card center">
-              <p>{&board.name}</p>
-              <p>{&board.id}</p>
+              <span>{&board.name}</span>
             </div>
           </Link<Route>>
         }
