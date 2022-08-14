@@ -18,7 +18,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(db_state.clone())
             .service(
                 web::scope("/api")
-                    .service(rest_handlers::health)
                     .service(rest_handlers::create_board)
                     .service(rest_handlers::list_boards),
             )

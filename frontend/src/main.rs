@@ -1,5 +1,5 @@
 mod components;
-use crate::components::app::App;
+use crate::components::board::Board;
 use crate::components::boards_list::BoardsList;
 use yew_router::prelude::{BrowserRouter, Redirect, Switch};
 mod api;
@@ -24,7 +24,7 @@ fn switch(route: &Route) -> Html {
         }
         Route::BoardView { id } => {
             return html! {
-                <App />
+                <Board />
             }
         }
     }

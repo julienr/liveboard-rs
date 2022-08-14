@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HealthResponse {
-    pub value1: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub enum SocketMessage {
     Circle(Circle),
     Pointer(PointerPosition),

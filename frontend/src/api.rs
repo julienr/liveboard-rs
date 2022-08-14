@@ -1,5 +1,5 @@
 use gloo_net::http::Request;
-use shared::datatypes::{Board, CreateBoardRequest, HealthResponse};
+use shared::datatypes::{Board, CreateBoardRequest};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -22,19 +22,6 @@ impl From<gloo_net::Error> for APIError {
             message: format!("gloo::Error : {:?}", err.to_string()),
         }
     }
-}
-
-// https://github.com/yewstack/yew/blob/master/examples/futures/src/main.rs
-pub async fn fetch_health() -> Result<HealthResponse, APIError> {
-    let resp = Request::get("/api/health")
-        .send()
-        .await
-        .unwrap()
-        .json::<HealthResponse>()
-        .await
-        .unwrap();
-
-    Ok(resp)
 }
 
 pub async fn fetch_boards() -> Result<Vec<Board>, APIError> {
