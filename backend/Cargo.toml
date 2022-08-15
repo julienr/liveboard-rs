@@ -15,6 +15,7 @@ simple_logger = "2.1.0"
 log = "0.4.14"
 shared = { path = "../shared" }
 serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0"
 tokio-pg-mapper = "0.2.0"
 tokio-pg-mapper-derive = "0.2.0"
 tokio-postgres = { version = "0.7.6", features = ["with-chrono-0_4"] }

@@ -15,6 +15,12 @@ pub struct PointerPosition {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Shape {
+    Circle(Circle),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Circle {
     pub x: f64,
     pub y: f64,

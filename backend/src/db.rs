@@ -11,8 +11,14 @@ mod errors {
         PGError(PGError),
         PGMError(PGMError),
         PoolError(PoolError),
+        InternalError(String),
     }
     impl std::error::Error for MyError {}
+    impl From<std::fmt::Error> for MyError {
+        fn from(e: std::fmt::Error) -> MyError {
+            MyError::InternalError(e.to_string())
+        }
+    }
 
     impl ResponseError for MyError {
         fn error_response(&self) -> HttpResponse {
@@ -30,6 +36,8 @@ mod errors {
 pub mod models {
     use chrono::{NaiveDateTime, Utc};
     use serde::{Deserialize, Serialize};
+    use serde_json;
+    use shared::datatypes as data;
     use tokio_pg_mapper_derive::PostgresMapper;
 
     pub trait Insertable {
@@ -41,8 +49,26 @@ pub mod models {
     #[pg_mapper(table = "shapes")]
     pub struct Shape {
         pub id: i32,
+        pub board_id: i32,
         pub created_at: NaiveDateTime,
         pub shape: String,
+    }
+
+    impl From<data::Shape> for Shape {
+        fn from(shape: data::Shape) -> Self {
+            Shape {
+                id: 0,
+                board_id: 0,
+                created_at: Utc::now().naive_utc(),
+                shape: serde_json::to_string(&shape).unwrap(),
+            }
+        }
+    }
+
+    impl From<Shape> for data::Shape {
+        fn from(shape: Shape) -> Self {
+            serde_json::from_str::<data::Shape>(&shape.shape).unwrap()
+        }
     }
 
     impl Insertable for Shape {
@@ -69,6 +95,15 @@ pub mod models {
         }
     }
 
+    impl From<Board> for data::Board {
+        fn from(board: Board) -> Self {
+            data::Board {
+                name: board.name,
+                id: board.id,
+            }
+        }
+    }
+
     impl Insertable for Board {
         fn to_insert_tuples(&self) -> Vec<[String; 2]> {
             return vec![["name".to_owned(), self.name.clone()]];
@@ -79,8 +114,10 @@ pub mod models {
 use deadpool_postgres::Client;
 use deadpool_postgres::{Config, Pool};
 use errors::MyError;
-use models::Board;
+use models::{Board, Shape};
+use shared::datatypes as data;
 use std::env;
+use std::fmt::Write as _;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::NoTls;
 
@@ -117,12 +154,15 @@ async fn get_by_id<T: FromTokioPostgresRow>(client: &Client, id: i32) -> Result<
     Ok(t)
 }
 
-async fn list<T: FromTokioPostgresRow>(client: &Client) -> Result<Vec<T>, MyError> {
-    let stmt = format!(
-        "SELECT {} FROM {};",
-        &T::sql_table_fields(),
-        &T::sql_table()
-    );
+async fn list<T: FromTokioPostgresRow>(
+    client: &Client,
+    where_statement: Option<String>,
+) -> Result<Vec<T>, MyError> {
+    let mut stmt = format!("SELECT {} FROM {}", &T::sql_table_fields(), &T::sql_table());
+    if where_statement.is_some() {
+        write!(stmt, " WHERE {}", where_statement.unwrap())?;
+    }
+    write!(stmt, ";")?;
     let stmt = client.prepare(&stmt).await.unwrap();
     let r = client
         .query(&stmt, &[])
@@ -166,11 +206,21 @@ async fn insert<T: Insertable + FromTokioPostgresRow>(
 }
 
 pub async fn get_boards(client: &Client) -> Result<Vec<Board>, MyError> {
-    list::<Board>(client).await
+    list::<Board>(client, None).await
 }
 
 pub async fn create_board(client: &Client, name: String) -> Result<Board, MyError> {
     let b = Board::new(name);
     let board = insert(client, &b).await?;
     Ok(board)
+}
+
+pub async fn get_shapes(client: &Client, board_id: u32) -> Result<Vec<Shape>, MyError> {
+    let shapes = list::<Shape>(client, Some(format!("board_id={}", board_id))).await?;
+    Ok(shapes)
+}
+
+pub async fn create_shape(client: &Client, shape: data::Shape) -> Result<Shape, MyError> {
+    let s: Shape = insert::<Shape>(client, &shape.into()).await?;
+    Ok(s)
 }

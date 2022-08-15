@@ -13,14 +13,17 @@ DROP DATABASE liveboard;
 CREATE DATABASE liveboard OWNER postgres;
 \c liveboard;
 
-CREATE TABLE shapes (
-    id SERIAL PRIMARY KEY,
-    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-    shape JSON NOT NULL
-);
-
 CREATE TABLE boards (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
     name TEXT NOT NULL
-)
+);
+
+CREATE TABLE shapes (
+    id SERIAL PRIMARY KEY,
+    board_id INT,
+    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    shape JSON NOT NULL,
+    CONSTRAINT fk_board
+        FOREIGN KEY(board_id) REFERENCES boards(id)
+);
