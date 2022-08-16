@@ -49,7 +49,7 @@ pub mod models {
     #[pg_mapper(table = "shapes")]
     pub struct Shape {
         pub id: i32,
-        pub board_id: i32,
+        //pub board_id: i32,
         pub created_at: NaiveDateTime,
         pub shape: String,
     }
@@ -58,7 +58,7 @@ pub mod models {
         fn from(shape: data::Shape) -> Self {
             Shape {
                 id: 0,
-                board_id: 0,
+                //board_id: 0,
                 created_at: Utc::now().naive_utc(),
                 shape: serde_json::to_string(&shape).unwrap(),
             }
@@ -111,7 +111,7 @@ pub mod models {
     }
 }
 
-use deadpool_postgres::Client;
+pub use deadpool_postgres::Client;
 use deadpool_postgres::{Config, Pool};
 use errors::MyError;
 use models::{Board, Shape};
@@ -142,14 +142,20 @@ pub fn make_state() -> State {
 }
 
 async fn get_by_id<T: FromTokioPostgresRow>(client: &Client, id: i32) -> Result<T, MyError> {
-    let stmt = format!(
+    let raw_stmt = format!(
         "SELECT {} FROM {} WHERE id={} LIMIT 1;",
         &T::sql_table_fields(),
         &T::sql_table(),
         id
     );
-    let stmt = client.prepare(&stmt).await.unwrap();
-    let row = client.query_one(&stmt, &[]).await?;
+    let stmt = client.prepare(&raw_stmt).await.unwrap();
+    let row = match client.query_one(&stmt, &[]).await {
+        Ok(row) => row,
+        Err(e) => {
+            log::error!("Error executing {:?}: {:?}", &raw_stmt, e.to_string());
+            return Err(MyError::PGError(e));
+        }
+    };
     let t = T::from_row_ref(&row).unwrap();
     Ok(t)
 }
@@ -186,7 +192,7 @@ async fn insert<T: Insertable + FromTokioPostgresRow>(
         columns.push(column_name);
         values.push(value);
     }
-    let stmt = format!(
+    let raw_stmt = format!(
         "INSERT INTO {} ({}) VALUES ({}) RETURNING id;",
         &T::sql_table(),
         columns.join(","),
@@ -196,11 +202,18 @@ async fn insert<T: Insertable + FromTokioPostgresRow>(
             .collect::<Vec<String>>()
             .join(",")
     );
-    println!("stms: {}", stmt);
-    let stmt = client.prepare(&stmt).await.unwrap();
-    let row = client.query_one(&stmt, &[]).await?;
+    log::debug!("statement: {:?}", raw_stmt);
+    let stmt = client.prepare(&raw_stmt).await.unwrap();
+    let row = match client.query_one(&stmt, &[]).await {
+        Ok(row) => row,
+        Err(e) => {
+            log::error!("Error executing {:?}: {:?}", &raw_stmt, e.to_string());
+            return Err(MyError::PGError(e));
+        }
+    };
     let id: i32 = row.get(0);
     let t: T = get_by_id(client, id).await?;
+    log::debug!("inserted 1");
 
     Ok(t)
 }

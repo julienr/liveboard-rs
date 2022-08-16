@@ -1,6 +1,8 @@
+use crate::db;
 use actix::{Actor, Addr, AsyncContext, Handler, Message as ActixMessage, StreamHandler};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
+use shared::datatypes::{Shape, SocketMessage};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -15,13 +17,43 @@ pub fn make_state() -> State {
     }
 }
 
-// Used to communicate between WS actors
 #[derive(ActixMessage)]
 #[rtype(result = "()")]
 pub struct Message(pub String);
 
 pub struct WsActor {
     state: Arc<State>,
+    db_state: Arc<db::State>,
+}
+
+// Broadcast to all clients but ourselves
+fn broadcast(state: &State, ctx: &mut <WsActor as Actor>::Context, msg: &str) {
+    let clients = state.clients.lock().unwrap();
+    log::debug!(
+        "Received text: {}, broadcasting to {} clients",
+        msg,
+        clients.len()
+    );
+    for client in clients.iter() {
+        if *client == ctx.address() {
+            continue;
+        }
+        client.do_send(Message(msg.to_string()));
+    }
+}
+
+async fn parse_and_persist(client: db::Client, msg: &str) {
+    // Parse and decide if needs to be persisted
+    let m: SocketMessage = serde_json::from_str(msg).unwrap();
+    match m {
+        SocketMessage::Circle(circle) => {
+            log::info!("Persisting circle");
+            db::create_shape(&client, Shape::Circle(circle))
+                .await
+                .unwrap();
+        }
+        _ => {}
+    }
 }
 
 impl Actor for WsActor {
@@ -66,19 +98,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
                 println!("pong");
             }
             Ok(ws::Message::Text(text)) => {
-                // Broadcast to all clients but ourselves
-                let clients = self.state.as_ref().clients.lock().unwrap();
-                println!(
-                    "Received text: {}, broadcasting to {} clients",
-                    text,
-                    clients.len()
-                );
-                for client in clients.iter() {
-                    if *client == ctx.address() {
-                        continue;
-                    }
-                    client.do_send(Message(text.to_string()));
-                }
+                let text2 = text.clone();
+                let pool = self.db_state.pool.clone();
+                let fut = async move {
+                    let client = pool.get().await.unwrap();
+                    parse_and_persist(client, &text).await;
+                };
+                let fut = actix::fut::wrap_future::<_, Self>(fut);
+                ctx.spawn(fut);
+                broadcast(self.state.as_ref(), ctx, &text2);
+                // TODO: Parse and if shape, persist to DB
                 // TODO: Ack message ?
                 //ctx.text(format!("{} response from", text))
             }
@@ -89,14 +118,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
 }
 
 pub async fn index(
-    data: web::Data<State>,
+    ws_data: web::Data<State>,
+    db_data: web::Data<db::State>,
     req: HttpRequest,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     println!("New websocket connection");
     let resp = ws::start(
         WsActor {
-            state: data.deref().clone(),
+            state: ws_data.deref().clone(),
+            db_state: db_data.deref().clone(),
         },
         &req,
         stream,
