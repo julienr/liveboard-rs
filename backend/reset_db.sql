@@ -21,10 +21,9 @@ CREATE TABLE boards (
 
 CREATE TABLE shapes (
     id SERIAL PRIMARY KEY,
-    /* board_id INT NOT NULL, */
+    board_id INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-    shape TEXT NOT NULL/*,
+    shape TEXT NOT NULL,
     CONSTRAINT fk_board
         FOREIGN KEY(board_id) REFERENCES boards(id)
-    */
 );

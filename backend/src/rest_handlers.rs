@@ -30,8 +30,8 @@ async fn list_boards(db_state: web::Data<State>) -> Result<impl Responder> {
     Ok(web::Json(boards))
 }
 
-#[get("/board/{id}")]
-async fn get_board(db_state: web::Data<State>, path: web::Path<(u32,)>) -> Result<impl Responder> {
+#[get("/boards/{id}")]
+async fn get_board(db_state: web::Data<State>, path: web::Path<(i32,)>) -> Result<impl Responder> {
     let client = db_state.as_ref().pool.clone().get().await.unwrap();
     let shapes: Vec<data::Shape> = get_shapes(&client, path.0)
         .await

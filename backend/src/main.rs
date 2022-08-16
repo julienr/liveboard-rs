@@ -19,9 +19,9 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api")
                     .service(rest_handlers::create_board)
-                    .service(rest_handlers::list_boards),
+                    .service(rest_handlers::list_boards)
+                    .service(ws_handlers::ws_for_board),
             )
-            .route("/ws/", web::get().to(ws_handlers::index))
             .service(
                 fs::Files::new("/", "../frontend/dist")
                     .index_file("index.html")

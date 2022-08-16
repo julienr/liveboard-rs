@@ -49,7 +49,7 @@ pub mod models {
     #[pg_mapper(table = "shapes")]
     pub struct Shape {
         pub id: i32,
-        //pub board_id: i32,
+        pub board_id: i32,
         pub created_at: NaiveDateTime,
         pub shape: String,
     }
@@ -58,7 +58,7 @@ pub mod models {
         fn from(shape: data::Shape) -> Self {
             Shape {
                 id: 0,
-                //board_id: 0,
+                board_id: 0,
                 created_at: Utc::now().naive_utc(),
                 shape: serde_json::to_string(&shape).unwrap(),
             }
@@ -73,7 +73,10 @@ pub mod models {
 
     impl Insertable for Shape {
         fn to_insert_tuples(&self) -> Vec<[String; 2]> {
-            return vec![["shape".to_owned(), self.shape.clone()]];
+            return vec![
+                ["board_id".to_owned(), format!("{:?}", self.board_id)],
+                ["shape".to_owned(), self.shape.clone()],
+            ];
         }
     }
 
@@ -228,12 +231,18 @@ pub async fn create_board(client: &Client, name: String) -> Result<Board, MyErro
     Ok(board)
 }
 
-pub async fn get_shapes(client: &Client, board_id: u32) -> Result<Vec<Shape>, MyError> {
+pub async fn get_shapes(client: &Client, board_id: i32) -> Result<Vec<Shape>, MyError> {
     let shapes = list::<Shape>(client, Some(format!("board_id={}", board_id))).await?;
     Ok(shapes)
 }
 
-pub async fn create_shape(client: &Client, shape: data::Shape) -> Result<Shape, MyError> {
-    let s: Shape = insert::<Shape>(client, &shape.into()).await?;
+pub async fn create_shape(
+    client: &Client,
+    shape: data::Shape,
+    board_id: i32,
+) -> Result<Shape, MyError> {
+    let mut db_shape: Shape = shape.into();
+    db_shape.board_id = board_id;
+    let s: Shape = insert::<Shape>(client, &db_shape).await?;
     Ok(s)
 }

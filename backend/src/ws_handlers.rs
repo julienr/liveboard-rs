@@ -1,6 +1,6 @@
 use crate::db;
 use actix::{Actor, Addr, AsyncContext, Handler, Message as ActixMessage, StreamHandler};
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{get, web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use shared::datatypes::{Shape, SocketMessage};
 use std::ops::Deref;
@@ -22,6 +22,7 @@ pub fn make_state() -> State {
 pub struct Message(pub String);
 
 pub struct WsActor {
+    board_id: i32,
     state: Arc<State>,
     db_state: Arc<db::State>,
 }
@@ -42,13 +43,13 @@ fn broadcast(state: &State, ctx: &mut <WsActor as Actor>::Context, msg: &str) {
     }
 }
 
-async fn parse_and_persist(client: db::Client, msg: &str) {
+async fn parse_and_persist(client: db::Client, msg: &str, board_id: i32) {
     // Parse and decide if needs to be persisted
     let m: SocketMessage = serde_json::from_str(msg).unwrap();
     match m {
         SocketMessage::Circle(circle) => {
-            log::info!("Persisting circle");
-            db::create_shape(&client, Shape::Circle(circle))
+            log::info!("Persisting circle for {:?}", board_id);
+            db::create_shape(&client, Shape::Circle(circle), board_id)
                 .await
                 .unwrap();
         }
@@ -100,16 +101,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
             Ok(ws::Message::Text(text)) => {
                 let text2 = text.clone();
                 let pool = self.db_state.pool.clone();
+                let board_id = self.board_id;
                 let fut = async move {
                     let client = pool.get().await.unwrap();
-                    parse_and_persist(client, &text).await;
+                    parse_and_persist(client, &text, board_id).await;
                 };
                 let fut = actix::fut::wrap_future::<_, Self>(fut);
                 ctx.spawn(fut);
                 broadcast(self.state.as_ref(), ctx, &text2);
-                // TODO: Parse and if shape, persist to DB
-                // TODO: Ack message ?
-                //ctx.text(format!("{} response from", text))
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             _ => (),
@@ -117,15 +116,19 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
     }
 }
 
-pub async fn index(
+#[get("/boards/{id}/ws")]
+pub async fn ws_for_board(
     ws_data: web::Data<State>,
     db_data: web::Data<db::State>,
+    path: web::Path<(i32,)>,
     req: HttpRequest,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
     println!("New websocket connection");
+    let board_id = path.0;
     let resp = ws::start(
         WsActor {
+            board_id,
             state: ws_data.deref().clone(),
             db_state: db_data.deref().clone(),
         },

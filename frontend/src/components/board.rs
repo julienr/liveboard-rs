@@ -38,7 +38,7 @@ pub struct Board {
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct BoardProps {
-    pub id: String,
+    pub id: i32,
 }
 
 // Mouse position spline:
@@ -51,10 +51,12 @@ impl Component for Board {
     type Properties = BoardProps;
 
     fn create(ctx: &Context<Self>) -> Self {
+        let board_id = ctx.props().id;
+        log::info!("Initializing board={:?}", board_id);
         let window = web_sys::window().unwrap();
         let crypto = window.crypto().unwrap();
         let scope = ctx.link().clone();
-        let client = new_ws_client(move |message: WsMessage| match message {
+        let client = new_ws_client(board_id, move |message: WsMessage| match message {
             WsMessage::Text(value) => {
                 // log::info!("String message {}", value);
                 let m: SocketMessage = serde_json::from_str(&value).unwrap();

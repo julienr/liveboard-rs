@@ -7,5 +7,5 @@ pub enum Route {
     #[at("/boards")]
     BoardsList,
     #[at("/boards/:id")]
-    BoardView { id: String },
+    BoardView { id: i32 },
 }

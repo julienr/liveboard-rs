@@ -82,7 +82,7 @@ impl Component for BoardsList {
 impl BoardsList {
     fn view_board_card(&self, board: &Board) -> Html {
         html! {
-          <Link<Route> to={Route::BoardView { id: board.id.to_string() }}>
+          <Link<Route> to={Route::BoardView { id: board.id }}>
             <div class="card center">
               <span>{&board.name}</span>
             </div>

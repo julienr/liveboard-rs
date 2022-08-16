@@ -9,16 +9,17 @@ pub struct WSClient {
     pub sender: WsSender,
 }
 
-pub fn new_ws_client<F>(handle_message: F) -> WSClient
+pub fn new_ws_client<F>(board_id: i32, handle_message: F) -> WSClient
 where
     F: 'static + Fn(WsMessage),
 {
     let window = web_sys::window().unwrap();
     let location = window.location();
     let url = format!(
-        "ws://{}:{}/ws/",
+        "ws://{}:{}/api/boards/{}/ws",
         location.hostname().unwrap(),
         location.port().unwrap(),
+        board_id,
     );
     log::info!("url= {:?}", url);
     let ws = WebSocket::open(&url).unwrap();
