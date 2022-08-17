@@ -146,7 +146,6 @@ impl Component for Board {
                 for (_, live_cursor) in self.other_pointers.iter_mut() {
                     live_cursor.tick();
                 }
-                self.draw_smiley(&canvas);
                 self.draw_circles(&canvas);
                 self.draw_pointers(&canvas);
                 true
@@ -307,33 +306,6 @@ impl Board {
             .unwrap()
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap()
-    }
-    fn draw_smiley(&self, canvas: &HtmlCanvasElement) {
-        let context = self.get_context(canvas);
-        context.begin_path();
-
-        // Draw the outer circle.
-        context
-            .arc(75.0, 75.0, 50.0, 0.0, f64::consts::PI * 2.0)
-            .unwrap();
-
-        // Draw the mouth.
-        context.move_to(110.0, 75.0);
-        context.arc(75.0, 75.0, 35.0, 0.0, f64::consts::PI).unwrap();
-
-        // Draw the left eye.
-        context.move_to(65.0, 65.0);
-        context
-            .arc(60.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-            .unwrap();
-
-        // Draw the right eye.
-        context.move_to(95.0, 65.0);
-        context
-            .arc(90.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-            .unwrap();
-
-        context.stroke();
     }
     fn draw_circles(&self, canvas: &HtmlCanvasElement) {
         let context = self.get_context(canvas);
