@@ -6,7 +6,7 @@ This uses [Yew](https://yew.rs/) for the frontend (Vue-like Rust framework), [ac
 
 The backend relies on a postgres database accessed through `tokio-pg-mapper`.
 
-Another interesting feature of Rust is it allows sharing types between backend and frontend, removing the need to sync validation logic or helper methods between two languages. See [shared/src/datatypes/mod.rs](shared/src/datatypes/mod.rs).
+An interesting feature of Rust is it allows sharing types between backend and frontend, removing the need to sync validation logic or helper methods between two languages. See [shared/src/datatypes/mod.rs](shared/src/datatypes/mod.rs).
 
 This also features spline-based interpolation of the cursor positions to have nice animation instead of "jumpy" updates.
 
@@ -25,6 +25,10 @@ You also need to setup wasm tools for rust:
 
 https://rustwasm.github.io/docs/book/game-of-life/setup.html
 
+Start the db:
+
+    $ docker-compose up
+    $ make reset_db  # Required to (re)create the tables
 
 And then start dev servers:
 
