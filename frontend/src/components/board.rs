@@ -1,10 +1,11 @@
+use super::super::api::fetch_shapes;
 use super::ws_client::{new_ws_client, WSClient};
 use crate::live_cursor::LiveCursor;
 use crate::utils::set_interval;
 use futures::SinkExt;
 use gloo_net::websocket::Message as WsMessage;
 use log;
-use shared::datatypes::{Circle, Color, PointerPosition, SocketMessage};
+use shared::datatypes::{Circle, Color, PointerPosition, Shape, SocketMessage};
 use std::collections::HashMap;
 use std::f64;
 use wasm_bindgen::prelude::Closure;
@@ -22,6 +23,8 @@ pub enum Msg {
     MouseMove(i32, i32),
     NewCircle(Circle),
     OtherPointerMoved(PointerPosition),
+    OnInitialShapesLoaded(Vec<Shape>),
+    OnLoadError,
 }
 
 pub struct Board {
@@ -34,6 +37,7 @@ pub struct Board {
     id: String,
     last_pointer_update: f64,
     performance: web_sys::Performance,
+    loading: bool,
 }
 
 #[derive(Clone, PartialEq, Properties)]
@@ -55,6 +59,18 @@ impl Component for Board {
         log::info!("Initializing board={:?}", board_id);
         let window = web_sys::window().unwrap();
         let crypto = window.crypto().unwrap();
+        let scope = ctx.link().clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            match fetch_shapes(board_id).await {
+                Ok(shapes) => {
+                    scope.send_message(Msg::OnInitialShapesLoaded(shapes));
+                }
+                Err(e) => {
+                    log::error!("Error loading shapes: {:?}", e);
+                    scope.send_message(Msg::OnLoadError);
+                }
+            }
+        });
         let scope = ctx.link().clone();
         let client = new_ws_client(board_id, move |message: WsMessage| match message {
             WsMessage::Text(value) => {
@@ -96,6 +112,8 @@ impl Component for Board {
             id: color.hex_color(),
             last_pointer_update: performance.now(),
             performance,
+            // OnInitialShapesLoaded will clear the loading flag
+            loading: true,
         }
     }
 
@@ -197,6 +215,20 @@ impl Component for Board {
                 ctx.link().send_message(Msg::Draw);
                 false
             }
+            Msg::OnLoadError => {
+                // TODO
+                false
+            }
+            Msg::OnInitialShapesLoaded(shapes) => {
+                for shape in shapes {
+                    match shape {
+                        Shape::Circle(circle) => self.circles.push(circle),
+                    }
+                }
+                ctx.link().send_message(Msg::Draw);
+                self.loading = false;
+                false
+            }
         }
     }
 
@@ -251,7 +283,7 @@ impl Component for Board {
             self.color.hex_color()
         );
         html! {
-            <div>
+            <div aria-busy={ if self.loading { "true" } else { "false" }}>
                 <div style="position: absolute; bottom: 0; left: 0; margin: 5px;">
                     <p>{ self.circles.len() } { " circles" } </p>
                     <p>{"id: "}{ ctx.props().id.to_owned() }</p>

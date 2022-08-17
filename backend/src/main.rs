@@ -20,6 +20,7 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .service(rest_handlers::create_board)
                     .service(rest_handlers::list_boards)
+                    .service(rest_handlers::get_board)
                     .service(ws_handlers::ws_for_board),
             )
             .service(

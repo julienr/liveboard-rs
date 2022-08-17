@@ -1,5 +1,5 @@
 use gloo_net::http::Request;
-use shared::datatypes::{Board, CreateBoardRequest};
+use shared::datatypes::{Board, CreateBoardRequest, Shape};
 use std::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
@@ -40,6 +40,15 @@ pub async fn create_board(name: String) -> Result<Board, APIError> {
         .send()
         .await?
         .json::<Board>()
+        .await?;
+    Ok(resp)
+}
+
+pub async fn fetch_shapes(board_id: i32) -> Result<Vec<Shape>, APIError> {
+    let resp = Request::get(&format!("/api/boards/{}", board_id))
+        .send()
+        .await?
+        .json::<Vec<Shape>>()
         .await?;
     Ok(resp)
 }

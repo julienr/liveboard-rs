@@ -53,7 +53,9 @@ async fn parse_and_persist(client: db::Client, msg: &str, board_id: i32) {
                 .await
                 .unwrap();
         }
-        _ => {}
+        SocketMessage::Pointer(_) => {
+            // pass
+        }
     }
 }
 
